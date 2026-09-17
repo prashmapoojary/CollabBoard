@@ -322,6 +322,45 @@ export const formatActivityParts = (activity, listsMap = {}) => {
       };
     }
 
+    // ---------------- LOG HOUR ACTIONS ----------------
+    case 'loghour_created': {
+      const taskTitle = after?.taskTitle || 'a task';
+      const hours = after?.hours ?? 0;
+      return {
+        actorName,
+        actionText: `logged ${hours}h on`,
+        targetName: `task "${taskTitle}"`,
+        extraText: '',
+      };
+    }
+
+    case 'loghour_updated': {
+      const taskTitle = after?.taskTitle || before?.taskTitle || 'a task';
+      const newHours = after?.hours;
+      const oldHours = before?.hours;
+      const hoursNote =
+        newHours !== undefined && oldHours !== undefined && newHours !== oldHours
+          ? ` (${oldHours}h -> ${newHours}h)`
+          : '';
+      return {
+        actorName,
+        actionText: 'updated logged hours',
+        targetName: `on "${taskTitle}"${hoursNote}`,
+        extraText: '',
+      };
+    }
+
+    case 'loghour_deleted': {
+      const taskTitle = before?.taskTitle || 'a task';
+      const hours = before?.hours ? ` (${before.hours}h)` : '';
+      return {
+        actorName,
+        actionText: 'deleted time log',
+        targetName: `from "${taskTitle}"${hours}`,
+        extraText: '',
+      };
+    }
+
     default: {
       const cleanAction = (actionType || 'action').replace(/_/g, ' ');
       return {
@@ -400,6 +439,14 @@ export const getActivityCategory = (actionType = '') => {
       type: 'attachment',
       badgeClass: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20',
       dotClass: 'bg-violet-500',
+    };
+  }
+
+  if (actionType.startsWith('loghour_')) {
+    return {
+      type: 'loghour',
+      badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+      dotClass: 'bg-amber-500',
     };
   }
 

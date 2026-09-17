@@ -24,6 +24,7 @@ import {
 import { TaskComments } from './TaskComments';
 import { TaskSubitems } from './TaskSubitems';
 import { TaskAttachments } from './TaskAttachments';
+import { TaskLogHours } from './TaskLogHours';
 import { AssigneePicker } from './AssigneePicker';
 import { toDateTimeLocalValue, formatDueDate } from '../../utils/dateUtils';
 
@@ -39,10 +40,11 @@ export const TaskDetailModal = ({
 }) => {
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'subitems' | 'attachments' | 'comments'
+  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'subitems' | 'attachments' | 'comments' | 'loghours'
   const [commentsCount, setCommentsCount] = useState(0);
   const [subitemsProgress, setSubitemsProgress] = useState({ total: 0, completed: 0 });
   const [attachmentsCount, setAttachmentsCount] = useState(0);
+  const [totalLoggedHours, setTotalLoggedHours] = useState(0);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -313,6 +315,24 @@ export const TaskDetailModal = ({
               </span>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('loghours')}
+            className={`py-2.5 px-3 text-xs font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'loghours'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Log Hours</span>
+            {totalLoggedHours > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/15 text-primary font-bold">
+                {totalLoggedHours}h
+              </span>
+            )}
+          </button>
         </div>
 
         {activeTab === 'subitems' ? (
@@ -337,6 +357,14 @@ export const TaskDetailModal = ({
               taskId={task._id}
               currentUserRole={currentUserRole}
               onCommentsCountChange={setCommentsCount}
+            />
+          </div>
+        ) : activeTab === 'loghours' ? (
+          <div className="flex-1 overflow-y-auto p-6">
+            <TaskLogHours
+              taskId={task._id}
+              currentUserRole={currentUserRole}
+              onTotalHoursChange={setTotalLoggedHours}
             />
           </div>
         ) : (

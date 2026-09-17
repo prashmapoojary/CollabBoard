@@ -43,12 +43,15 @@ const activityLogSchema = new mongoose.Schema(
         'subitem_deleted',
         'attachment_created',
         'attachment_deleted',
+        'loghour_created',
+        'loghour_updated',
+        'loghour_deleted',
       ],
     },
     targetType: {
       type: String,
       required: [true, 'Target type is required'],
-      enum: ['task', 'list', 'project', 'workspace', 'member', 'comment', 'subitem', 'attachment'],
+      enum: ['task', 'list', 'project', 'workspace', 'member', 'comment', 'subitem', 'attachment', 'loghour'],
     },
     targetId: {
       type: mongoose.Schema.Types.ObjectId,

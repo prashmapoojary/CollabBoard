@@ -4,6 +4,7 @@ import { Task } from '../models/Task.js';
 import { List } from '../models/List.js';
 import { Subitem } from '../models/Subitem.js';
 import { Attachment } from '../models/Attachment.js';
+import { LogHour } from '../models/LogHour.js';
 import { UPLOADS_DIR } from '../middleware/uploadMiddleware.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { broadcastToProject } from '../socket/index.js';
@@ -232,6 +233,7 @@ export const deleteTask = async (req, res, next) => {
       }
     }
     await Attachment.deleteMany({ taskId });
+    await LogHour.deleteMany({ taskId });
 
     broadcastToProject(req, projectId, 'task:deleted', {
       taskId: taskId.toString(),

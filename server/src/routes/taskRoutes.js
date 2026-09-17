@@ -15,16 +15,18 @@ import {
 import commentRoutes from './commentRoutes.js';
 import subitemRoutes from './subitemRoutes.js';
 import { taskAttachmentRouter } from './attachmentRoutes.js';
+import logHourRoutes from './logHourRoutes.js';
 
 const router = Router();
 
 // All task routes require authentication
 router.use(authMiddleware);
 
-// Sub-routes for task comments, subitems, and attachments
+// Sub-routes for task comments, subitems, attachments, and loghours
 router.use('/:taskId/comments', commentRoutes);
 router.use('/:taskId/subitems', subitemRoutes);
 router.use('/:taskId/attachments', taskAttachmentRouter);
+router.use('/:taskId/loghours', logHourRoutes);
 
 // PATCH /api/tasks/:id/move (editor/owner — body: { listId, order } — NO ownership check required)
 router.patch(
