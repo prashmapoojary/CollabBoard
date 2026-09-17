@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   uploadAttachment,
+  addLinkAttachment,
   getTaskAttachments,
   downloadAttachment,
   deleteAttachment,
@@ -29,6 +30,13 @@ taskAttachmentRouter.post(
   entityResolverMiddleware('task', ['owner', 'editor']),
   uploadSingleAttachment('file'),
   uploadAttachment
+);
+
+// POST /api/tasks/:taskId/attachments/link (link/URL attachment, editor/owner)
+taskAttachmentRouter.post(
+  '/link',
+  entityResolverMiddleware('task', ['owner', 'editor']),
+  addLinkAttachment
 );
 
 // GET /api/tasks/:taskId/attachments (viewer/editor/owner)

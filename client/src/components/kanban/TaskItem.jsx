@@ -9,6 +9,7 @@ import {
   Bug,
   BookOpen,
   ListTodo,
+  Paperclip,
 } from 'lucide-react';
 import { formatDueDate } from '../../utils/dateUtils';
 
@@ -162,6 +163,17 @@ export const TaskItem = ({
               <span>
                 {subitemProgress.completed}/{subitemProgress.total}
               </span>
+            </span>
+          )}
+
+          {/* Attachment Count Badge */}
+          {(task.attachmentCount > 0 || task.attachmentsCount > 0) && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md border text-muted-foreground bg-secondary border-border"
+              title={`Attachments: ${task.attachmentCount || task.attachmentsCount}`}
+            >
+              <Paperclip className="w-3 h-3 text-primary" />
+              <span>{task.attachmentCount || task.attachmentsCount}</span>
             </span>
           )}
         </div>

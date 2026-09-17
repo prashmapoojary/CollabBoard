@@ -27,6 +27,7 @@ export const uploadAttachment = async (req, res, next) => {
     const attachment = await Attachment.create({
       taskId: task._id,
       uploadedBy: req.user._id,
+      type: 'file',
       filename: req.file.originalname,
       storedFilename: req.file.filename,
       mimeType: req.file.mimetype || 'application/octet-stream',
@@ -55,6 +56,80 @@ export const uploadAttachment = async (req, res, next) => {
           taskTitle: task.title,
           filename: attachment.filename,
           sizeBytes: attachment.sizeBytes,
+          type: 'file',
+        },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      attachment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/tasks/:taskId/attachments/link
+ * Add a link attachment (URL) to a task (editor or owner).
+ */
+export const addLinkAttachment = async (req, res, next) => {
+  try {
+    const { url, title } = req.body;
+    if (!url || typeof url !== 'string' || !url.trim()) {
+      return next(new AppError('Please provide a valid URL for the link attachment.', 400));
+    }
+
+    let trimmedUrl = url.trim();
+    if (!/^https?:\/\//i.test(trimmedUrl)) {
+      trimmedUrl = `https://${trimmedUrl}`;
+    }
+
+    try {
+      new URL(trimmedUrl);
+    } catch (e) {
+      return next(new AppError('Invalid URL format. Please provide a valid web link.', 400));
+    }
+
+    const task = req.task;
+    const project = req.project;
+    const displayTitle = (title && typeof title === 'string' && title.trim()) || trimmedUrl;
+
+    const attachment = await Attachment.create({
+      taskId: task._id,
+      uploadedBy: req.user._id,
+      type: 'link',
+      url: trimmedUrl,
+      filename: displayTitle,
+      mimeType: 'text/uri-list',
+      sizeBytes: 0,
+    });
+
+    await attachment.populate('uploadedBy', 'name email avatarUrl');
+
+    broadcastToProject(req, project._id, 'attachment:created', {
+      attachment: attachment.toJSON(),
+      taskId: task._id.toString(),
+      projectId: project._id.toString(),
+    });
+
+    logActivity({
+      workspaceId: project.workspaceId,
+      projectId: project._id,
+      actorId: req.user._id,
+      actionType: 'attachment_created',
+      targetType: 'attachment',
+      targetId: attachment._id,
+      metadata: {
+        before: null,
+        after: {
+          taskId: task._id,
+          taskTitle: task.title,
+          filename: attachment.filename,
+          type: 'link',
+          url: trimmedUrl,
+          sizeBytes: 0,
         },
       },
     });
@@ -133,7 +208,7 @@ const resolveAttachmentContext = async (attachmentId, userId, allowedRoles = [])
 
 /**
  * GET /api/attachments/:id/download
- * Download/stream file attachment (accessible to any workspace member with access to parent task).
+ * Download/stream file attachment or redirect to link URL.
  */
 export const downloadAttachment = async (req, res, next) => {
   try {
@@ -144,6 +219,14 @@ export const downloadAttachment = async (req, res, next) => {
       req.user._id,
       ['owner', 'editor', 'viewer']
     );
+
+    if (attachment.type === 'link') {
+      return res.redirect(attachment.url);
+    }
+
+    if (!attachment.storedFilename) {
+      return next(new AppError('Attachment file not found.', 404));
+    }
 
     const filePath = path.join(UPLOADS_DIR, attachment.storedFilename);
 
@@ -166,7 +249,7 @@ export const downloadAttachment = async (req, res, next) => {
 /**
  * DELETE /api/attachments/:id
  * Delete an attachment (strictly uploader of the attachment OR workspace owner only).
- * Removes both the database record and the file from disk.
+ * Removes database record and unlinks file from disk if physical file.
  */
 export const deleteAttachment = async (req, res, next) => {
   try {
@@ -187,14 +270,16 @@ export const deleteAttachment = async (req, res, next) => {
       );
     }
 
-    // 1. Delete file from disk
-    const filePath = path.join(UPLOADS_DIR, attachment.storedFilename);
-    try {
-      if (fs.existsSync(filePath)) {
-        await fs.promises.unlink(filePath);
+    // 1. Delete file from disk if it was stored on disk
+    if (attachment.type === 'file' && attachment.storedFilename) {
+      const filePath = path.join(UPLOADS_DIR, attachment.storedFilename);
+      try {
+        if (fs.existsSync(filePath)) {
+          await fs.promises.unlink(filePath);
+        }
+      } catch (diskErr) {
+        console.error('[Attachment] Error deleting file from disk:', diskErr);
       }
-    } catch (diskErr) {
-      console.error('[Attachment] Error deleting file from disk:', diskErr);
     }
 
     // 2. Delete database record
@@ -220,6 +305,7 @@ export const deleteAttachment = async (req, res, next) => {
           taskId: task._id,
           taskTitle: task.title,
           filename: attachment.filename,
+          type: attachment.type,
         },
         after: null,
       },

@@ -107,17 +107,28 @@ export const getProjectById = async (req, res, next) => {
       .populate('assignees', 'name email avatarUrl');
 
     const taskIds = tasks.map((t) => t._id);
-    const subitemCounts = await Subitem.aggregate([
-      { $match: { taskId: { $in: taskIds } } },
-      {
-        $group: {
-          _id: '$taskId',
-          total: { $sum: 1 },
-          completed: {
-            $sum: { $cond: ['$completed', 1, 0] },
+    const [subitemCounts, attachmentCounts] = await Promise.all([
+      Subitem.aggregate([
+        { $match: { taskId: { $in: taskIds } } },
+        {
+          $group: {
+            _id: '$taskId',
+            total: { $sum: 1 },
+            completed: {
+              $sum: { $cond: ['$completed', 1, 0] },
+            },
           },
         },
-      },
+      ]),
+      Attachment.aggregate([
+        { $match: { taskId: { $in: taskIds } } },
+        {
+          $group: {
+            _id: '$taskId',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
 
     const subitemMap = new Map();
@@ -126,6 +137,11 @@ export const getProjectById = async (req, res, next) => {
         total: item.total,
         completed: item.completed,
       });
+    }
+
+    const attachmentMap = new Map();
+    for (const item of attachmentCounts) {
+      attachmentMap.set(item._id.toString(), item.count);
     }
 
     const tasksByListId = {};
@@ -139,6 +155,8 @@ export const getProjectById = async (req, res, next) => {
         total: 0,
         completed: 0,
       };
+      taskObj.attachmentCount = attachmentMap.get(task._id.toString()) || 0;
+      taskObj.attachmentsCount = taskObj.attachmentCount;
       tasksByListId[lid].push(taskObj);
     }
 
@@ -174,13 +192,15 @@ export const deleteProject = async (req, res, next) => {
       await Subitem.deleteMany({ taskId: { $in: taskIds } });
       const attachments = await Attachment.find({ taskId: { $in: taskIds } });
       for (const att of attachments) {
-        try {
-          const filePath = path.join(UPLOADS_DIR, att.storedFilename);
-          if (fs.existsSync(filePath)) {
-            await fs.promises.unlink(filePath);
+        if (att.storedFilename) {
+          try {
+            const filePath = path.join(UPLOADS_DIR, att.storedFilename);
+            if (fs.existsSync(filePath)) {
+              await fs.promises.unlink(filePath);
+            }
+          } catch (unlinkErr) {
+            console.error('[Project Cascade] Error deleting file:', unlinkErr);
           }
-        } catch (unlinkErr) {
-          console.error('[Project Cascade] Error deleting file:', unlinkErr);
         }
       }
       await Attachment.deleteMany({ taskId: { $in: taskIds } });

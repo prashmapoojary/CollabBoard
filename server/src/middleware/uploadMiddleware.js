@@ -16,8 +16,9 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-// Allowed extensions and MIME types
+// Allowed extensions and MIME types (broad set of safe formats)
 const ALLOWED_EXTENSIONS = new Set([
+  // Images
   '.jpg',
   '.jpeg',
   '.png',
@@ -25,6 +26,11 @@ const ALLOWED_EXTENSIONS = new Set([
   '.webp',
   '.svg',
   '.bmp',
+  '.tiff',
+  '.tif',
+  '.ico',
+  '.heic',
+  // Documents & PDFs
   '.pdf',
   '.doc',
   '.docx',
@@ -35,9 +41,41 @@ const ALLOWED_EXTENSIONS = new Set([
   '.txt',
   '.csv',
   '.md',
-  '.json',
+  '.markdown',
   '.rtf',
+  '.odt',
+  '.ods',
+  '.odp',
+  // Code, Config & Data
+  '.json',
+  '.xml',
+  '.yaml',
+  '.yml',
+  '.sql',
+  '.log',
+  // Design files
+  '.psd',
+  '.ai',
+  '.sketch',
+  '.fig',
+  '.xd',
+  // Audio & Video
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.m4a',
+  '.mp4',
+  '.webm',
+  '.mov',
+  '.avi',
+  '.mkv',
+  // Archives
   '.zip',
+  '.rar',
+  '.7z',
+  '.tar',
+  '.gz',
+  '.bz2',
 ]);
 
 const DANGEROUS_EXTENSIONS = new Set([

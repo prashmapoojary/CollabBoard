@@ -16,6 +16,7 @@ import {
   ArrowUpDown,
   Clock,
   ExternalLink,
+  Paperclip,
 } from 'lucide-react';
 import { formatDueDate } from '../utils/dateUtils';
 import { TaskDetailModal } from '../components/task/TaskDetailModal';
@@ -354,6 +355,15 @@ export const AllTasksPage = () => {
                               <span>
                                 {task.subitemProgress.completed}/{task.subitemProgress.total}
                               </span>
+                            </span>
+                          )}
+                          {(task.attachmentCount > 0 || task.attachmentsCount > 0) && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.2 rounded border shrink-0 text-muted-foreground bg-secondary border-border"
+                              title={`Attachments: ${task.attachmentCount || task.attachmentsCount}`}
+                            >
+                              <Paperclip className="w-2.5 h-2.5 text-primary" />
+                              <span>{task.attachmentCount || task.attachmentsCount}</span>
                             </span>
                           )}
                         </div>

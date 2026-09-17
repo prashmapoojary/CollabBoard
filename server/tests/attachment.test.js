@@ -333,4 +333,80 @@ describe('Attachments on Tasks Test Suite (Step 15 - Part C)', () => {
       assert.equal(fs.existsSync(diskPath), false, 'Owner delete must remove file from disk');
     });
   });
+
+  describe('4. Link Attachments (Step 15 Enhancement)', () => {
+    let linkAttachmentId;
+
+    test('POST /api/tasks/:taskId/attachments/link: Editor can attach a URL link (201)', async () => {
+      const res = await request(app)
+        .post(`/api/tasks/${taskId}/attachments/link`)
+        .set('Authorization', `Bearer ${uploaderToken}`)
+        .send({
+          url: 'https://figma.com/file/collabboard-spec',
+          title: 'Figma Design Spec',
+        });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.attachment.type, 'link');
+      assert.equal(res.body.attachment.url, 'https://figma.com/file/collabboard-spec');
+      assert.equal(res.body.attachment.filename, 'Figma Design Spec');
+      assert.equal(res.body.attachment.sizeBytes, 0);
+      assert.equal(res.body.attachment.downloadUrl, 'https://figma.com/file/collabboard-spec');
+      linkAttachmentId = res.body.attachment._id;
+
+      // Activity log
+      const log = await findLogWithRetry({
+        actionType: 'attachment_created',
+        targetId: linkAttachmentId,
+      });
+      assert.ok(log);
+      assert.equal(log.metadata.after.type, 'link');
+    });
+
+    test('POST /api/tasks/:taskId/attachments/link: Viewer gets 403 Forbidden', async () => {
+      const res = await request(app)
+        .post(`/api/tasks/${taskId}/attachments/link`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({
+          url: 'https://google.com',
+          title: 'Google Doc',
+        });
+
+      assert.equal(res.status, 403);
+    });
+
+    test('POST /api/tasks/:taskId/attachments/link: Rejects empty or invalid URL with 400', async () => {
+      const res = await request(app)
+        .post(`/api/tasks/${taskId}/attachments/link`)
+        .set('Authorization', `Bearer ${uploaderToken}`)
+        .send({
+          url: '   ',
+        });
+
+      assert.equal(res.status, 400);
+      assert.match(res.body.message, /valid URL/i);
+    });
+
+    test('GET /api/attachments/:id/download: Redirects to URL for link attachments (302)', async () => {
+      const res = await request(app)
+        .get(`/api/attachments/${linkAttachmentId}/download`)
+        .set('Authorization', `Bearer ${viewerToken}`);
+
+      assert.equal(res.status, 302);
+      assert.equal(res.headers.location, 'https://figma.com/file/collabboard-spec');
+    });
+
+    test('DELETE /api/attachments/:id: Can delete link attachment cleanly without disk error (200)', async () => {
+      const res = await request(app)
+        .delete(`/api/attachments/${linkAttachmentId}`)
+        .set('Authorization', `Bearer ${uploaderToken}`);
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+
+      const found = await Attachment.findById(linkAttachmentId);
+      assert.equal(found, null);
+    });
+  });
 });

@@ -14,23 +14,51 @@ const attachmentSchema = new mongoose.Schema(
       required: [true, 'Uploader user ID is required'],
       index: true,
     },
+    type: {
+      type: String,
+      enum: ['file', 'link'],
+      default: 'file',
+    },
+    url: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function (v) {
+          if (this.type === 'link') {
+            return typeof v === 'string' && v.trim().length > 0;
+          }
+          return true;
+        },
+        message: 'URL is required for link attachments',
+      },
+    },
     filename: {
       type: String,
-      required: [true, 'Original filename is required'],
+      required: [true, 'Original filename or title is required'],
       trim: true,
     },
     storedFilename: {
       type: String,
-      required: [true, 'Stored filename is required'],
       trim: true,
+      validate: {
+        validator: function (v) {
+          if (this.type === 'file') {
+            return typeof v === 'string' && v.trim().length > 0;
+          }
+          return true;
+        },
+        message: 'Stored filename is required for file attachments',
+      },
     },
     mimeType: {
       type: String,
-      required: [true, 'MIME type is required'],
+      default: function () {
+        return this.type === 'link' ? 'text/uri-list' : 'application/octet-stream';
+      },
     },
     sizeBytes: {
       type: Number,
-      required: [true, 'File size in bytes is required'],
+      default: 0,
     },
     createdAt: {
       type: Date,
@@ -46,7 +74,10 @@ const attachmentSchema = new mongoose.Schema(
         if (ret.uploadedBy && typeof ret.uploadedBy === 'object' && ret.uploadedBy.name) {
           ret.uploader = ret.uploadedBy;
         }
-        ret.downloadUrl = `/api/attachments/${ret._id}/download`;
+        ret.downloadUrl =
+          ret.type === 'link'
+            ? ret.url || ret.filename
+            : `/api/attachments/${ret._id}/download`;
         return ret;
       },
     },
@@ -66,6 +97,9 @@ attachmentSchema.virtual('uploader', {
 
 // Virtual for download URL
 attachmentSchema.virtual('downloadUrl').get(function () {
+  if (this.type === 'link') {
+    return this.url;
+  }
   return `/api/attachments/${this._id}/download`;
 });
 

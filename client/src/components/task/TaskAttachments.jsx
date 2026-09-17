@@ -15,6 +15,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Link2,
+  ExternalLink,
+  Plus,
 } from 'lucide-react';
 
 /**
@@ -88,6 +91,12 @@ export const TaskAttachments = ({
   const [downloadingId, setDownloadingId] = useState(null);
   const [error, setError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+
+  // Link Attachment State
+  const [mode, setMode] = useState('file'); // 'file' | 'link'
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkTitle, setLinkTitle] = useState('');
+  const [addingLink, setAddingLink] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -202,6 +211,50 @@ export const TaskAttachments = ({
     }
   };
 
+  // Perform link attachment
+  const handleAddLink = async (e) => {
+    e?.preventDefault?.();
+    if (!linkUrl.trim() || currentUserRole === 'viewer' || addingLink) return;
+
+    let url = linkUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+    try {
+      new URL(url);
+    } catch {
+      setError('Invalid URL format. Please enter a valid web address.');
+      return;
+    }
+
+    try {
+      setAddingLink(true);
+      setError('');
+      const { data } = await api.post(`/tasks/${taskId}/attachments/link`, {
+        url,
+        title: linkTitle.trim() || url,
+      });
+
+      if (data?.attachment) {
+        setAttachments((prev) => {
+          if (prev.some((a) => a._id?.toString() === data.attachment._id?.toString())) {
+            return prev;
+          }
+          const updated = [data.attachment, ...prev];
+          onAttachmentsCountChange?.(updated.length);
+          return updated;
+        });
+        setLinkUrl('');
+        setLinkTitle('');
+      }
+    } catch (err) {
+      console.error('Failed to attach link:', err);
+      setError(err.response?.data?.message || 'Failed to attach link.');
+    } finally {
+      setAddingLink(false);
+    }
+  };
+
   // Drag & Drop handlers
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -290,61 +343,150 @@ export const TaskAttachments = ({
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      {/* Upload Zone (Drop or Select files) - Hidden for viewers */}
+      {/* Upload Zone / Add Link - Hidden for viewers */}
       {currentUserRole !== 'viewer' && (
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => !uploading && fileInputRef.current?.click()}
-          className={`relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
-            isDragging
-              ? 'border-primary bg-primary/10 scale-[1.01]'
-              : uploading
-              ? 'border-border bg-secondary/30 opacity-70 cursor-wait'
-              : 'border-border hover:border-primary/50 hover:bg-secondary/40 bg-secondary/20'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUploadFile(file);
-            }}
-            disabled={uploading}
-            className="hidden"
-          />
-
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-xs mb-1">
-            {uploading ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <UploadCloud className="w-6 h-6" />
-            )}
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-foreground">
-              {uploading
-                ? `Uploading file... ${uploadProgress}%`
-                : isDragging
-                ? 'Drop file here to upload'
-                : 'Drop or Select files'}
-            </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Drop files here or click to browse through your machine. Max 10MB.
-            </p>
-          </div>
-
-          {/* Upload Progress Bar */}
-          {uploading && (
-            <div className="w-full max-w-xs h-1.5 bg-secondary rounded-full overflow-hidden mt-2">
-              <div
-                className="h-full bg-primary transition-all duration-200"
-                style={{ width: `${uploadProgress}%` }}
-              />
+        <div className="space-y-3">
+          {/* Mode Switcher */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Add Attachment
+            </span>
+            <div className="flex rounded-lg border border-input p-0.5 bg-background text-[11px]">
+              <button
+                type="button"
+                onClick={() => setMode('file')}
+                className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                  mode === 'file'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Upload File</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('link')}
+                className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                  mode === 'link'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                <span>Attach Link</span>
+              </button>
             </div>
+          </div>
+
+          {/* Mode: File Upload */}
+          {mode === 'file' ? (
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
+                isDragging
+                  ? 'border-primary bg-primary/10 scale-[1.01]'
+                  : uploading
+                  ? 'border-border bg-secondary/30 opacity-70 cursor-wait'
+                  : 'border-border hover:border-primary/50 hover:bg-secondary/40 bg-secondary/20'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadFile(file);
+                }}
+                disabled={uploading}
+                className="hidden"
+              />
+
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-xs mb-1">
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <UploadCloud className="w-6 h-6" />
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-foreground">
+                  {uploading
+                    ? `Uploading file... ${uploadProgress}%`
+                    : isDragging
+                    ? 'Drop file here to upload'
+                    : 'Drop or Select files'}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  PDFs, docs, images, archives, whatever files up to 10MB each
+                </p>
+              </div>
+
+              {/* Upload Progress Bar */}
+              {uploading && (
+                <div className="w-full max-w-xs h-1.5 bg-secondary rounded-full overflow-hidden mt-2">
+                  <div
+                    className="h-full bg-primary transition-all duration-200"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Mode: Link Attachment Form */
+            <form
+              onSubmit={handleAddLink}
+              className="p-4 rounded-2xl bg-secondary/20 border border-border space-y-3"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="sm:col-span-2 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                    <Link2 className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="Paste link URL (e.g. Figma, Google Docs, GitHub PR...)"
+                    disabled={addingLink}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={linkTitle}
+                    onChange={(e) => setLinkTitle(e.target.value)}
+                    placeholder="Title (optional)"
+                    disabled={addingLink}
+                    className="w-full px-3 py-2 text-xs bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={addingLink || !linkUrl.trim()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-xl bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer transition-opacity shadow-xs"
+                >
+                  {addingLink ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Attaching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Attach Link</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}
@@ -371,12 +513,19 @@ export const TaskAttachments = ({
             </div>
             <p className="text-xs font-semibold text-foreground">No attachments yet</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Attach project briefs, UI designs, error logs, or relevant documents.
+              Attach project briefs, PDFs, links, UI designs, or relevant files.
             </p>
           </div>
         ) : (
           attachments.map((attachment) => {
-            const meta = getFileMeta(attachment.filename, attachment.mimeType);
+            const isLink = attachment.type === 'link';
+            const meta = isLink
+              ? {
+                  icon: Link2,
+                  color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
+                  isImage: false,
+                }
+              : getFileMeta(attachment.filename, attachment.mimeType);
             const IconComponent = meta.icon;
             const canDelete = canDeleteAttachment(attachment);
             const uploader = attachment.uploader || attachment.uploadedBy;
@@ -392,7 +541,7 @@ export const TaskAttachments = ({
                 key={attachment._id}
                 className="group flex items-center justify-between gap-3 p-3 rounded-xl bg-background border border-border hover:border-primary/40 transition-colors"
               >
-                {/* File Icon & Info */}
+                {/* File/Link Icon & Info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${meta.color}`}
@@ -401,16 +550,37 @@ export const TaskAttachments = ({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p
-                      className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors"
-                      title={attachment.filename}
-                    >
-                      {attachment.filename}
-                    </p>
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                      <span className="font-mono font-medium">
-                        {formatFileSize(attachment.sizeBytes)}
-                      </span>
+                    <div className="flex items-center gap-1.5">
+                      <p
+                        className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors"
+                        title={attachment.filename}
+                      >
+                        {attachment.filename}
+                      </p>
+                      {isLink && (
+                        <span className="text-[9px] uppercase tracking-wider px-1 py-0.2 rounded bg-indigo-500/10 text-indigo-500 font-semibold border border-indigo-500/20 shrink-0">
+                          Link
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5 flex-wrap">
+                      {isLink ? (
+                        <a
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline truncate max-w-[240px] font-mono text-[10px] inline-flex items-center gap-0.5"
+                          title={attachment.url}
+                        >
+                          <span>{attachment.url}</span>
+                          <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                        </a>
+                      ) : (
+                        <span className="font-mono font-medium">
+                          {formatFileSize(attachment.sizeBytes)}
+                        </span>
+                      )}
                       <span>•</span>
                       <span>{formatRelativeTime(attachment.createdAt)}</span>
                       <span>•</span>
@@ -434,20 +604,32 @@ export const TaskAttachments = ({
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0">
-                  {/* Download button */}
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(attachment)}
-                    disabled={downloadingId === attachment._id}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50"
-                    title="Download file"
-                  >
-                    {downloadingId === attachment._id ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                  </button>
+                  {/* Download or Open Link */}
+                  {isLink ? (
+                    <a
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary transition-colors cursor-pointer inline-flex items-center justify-center"
+                      title="Open link in new tab"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(attachment)}
+                      disabled={downloadingId === attachment._id}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50"
+                      title="Download file"
+                    >
+                      {downloadingId === attachment._id ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
 
                   {/* Delete button (uploader or workspace owner) */}
                   {canDelete && (

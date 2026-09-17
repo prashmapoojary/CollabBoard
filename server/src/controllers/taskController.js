@@ -1,5 +1,10 @@
+import fs from 'fs';
+import path from 'path';
 import { Task } from '../models/Task.js';
 import { List } from '../models/List.js';
+import { Subitem } from '../models/Subitem.js';
+import { Attachment } from '../models/Attachment.js';
+import { UPLOADS_DIR } from '../middleware/uploadMiddleware.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { broadcastToProject } from '../socket/index.js';
 import { logActivity } from '../utils/logActivity.js';
@@ -203,6 +208,23 @@ export const deleteTask = async (req, res, next) => {
     const projectId = req.project._id;
 
     await Task.findByIdAndDelete(taskId);
+
+    // Cascade delete subitems & attachments (with disk cleanup)
+    await Subitem.deleteMany({ taskId });
+    const attachments = await Attachment.find({ taskId });
+    for (const att of attachments) {
+      if (att.storedFilename) {
+        try {
+          const filePath = path.join(UPLOADS_DIR, att.storedFilename);
+          if (fs.existsSync(filePath)) {
+            await fs.promises.unlink(filePath);
+          }
+        } catch (unlinkErr) {
+          console.error('[Task Cascade] Error deleting attachment file:', unlinkErr);
+        }
+      }
+    }
+    await Attachment.deleteMany({ taskId });
 
     broadcastToProject(req, projectId, 'task:deleted', {
       taskId: taskId.toString(),
