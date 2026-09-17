@@ -69,6 +69,12 @@ export const createTaskSchema = z.object({
     })
     .optional()
     .default('task'),
+  priority: z
+    .enum(['low', 'medium', 'high', 'urgent'], {
+      invalid_type_error: 'Priority must be one of: low, medium, high, urgent',
+    })
+    .optional()
+    .default('medium'),
   dueDate: z.coerce.date().nullable().optional(),
   assignees: z
     .array(
@@ -94,6 +100,11 @@ export const updateTaskSchema = z
     taskType: z
       .enum(['task', 'bug', 'story'], {
         invalid_type_error: 'Task type must be one of: task, bug, story',
+      })
+      .optional(),
+    priority: z
+      .enum(['low', 'medium', 'high', 'urgent'], {
+        invalid_type_error: 'Priority must be one of: low, medium, high, urgent',
       })
       .optional(),
     dueDate: z.coerce.date().nullable().optional(),

@@ -57,8 +57,10 @@ export const CreateTaskModal = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [taskType, setTaskType] = useState('task');
+  const [priority, setPriority] = useState('medium');
   const [dueDate, setDueDate] = useState('');
   const [selectedAssignees, setSelectedAssignees] = useState([]);
+  const dueDatePickerRef = useRef(null);
 
   // Attachments State
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -233,6 +235,7 @@ export const CreateTaskModal = ({
         description: description.trim(),
         order: 0,
         taskType,
+        priority,
         dueDate: dueDate ? new Date(dueDate).toISOString() : null,
         assignees: selectedAssignees,
       };
@@ -241,6 +244,7 @@ export const CreateTaskModal = ({
       const createdTask = data.task;
 
       let attachedCount = 0;
+      const failedUploads = [];
 
       // 1. Upload files sequentially
       for (let i = 0; i < pendingFiles.length; i++) {
@@ -255,6 +259,7 @@ export const CreateTaskModal = ({
           attachedCount++;
         } catch (uploadErr) {
           console.error('Failed to upload file attachment:', uploadErr);
+          failedUploads.push(file.name);
         }
       }
 
@@ -270,6 +275,7 @@ export const CreateTaskModal = ({
           attachedCount++;
         } catch (linkErr) {
           console.error('Failed to attach link:', linkErr);
+          failedUploads.push(link.title || link.url);
         }
       }
 
@@ -291,6 +297,7 @@ export const CreateTaskModal = ({
       setTitle('');
       setDescription('');
       setTaskType('task');
+      setPriority('medium');
       setDueDate('');
       setSelectedAssignees([]);
       setPendingFiles([]);
@@ -300,6 +307,12 @@ export const CreateTaskModal = ({
       setAttachmentError('');
       setUploadStatus('');
       onClose();
+
+      if (failedUploads.length > 0) {
+        alert(
+          `Task "${createdTask.title}" was created successfully, but ${failedUploads.length} attachment(s) failed to upload:\n• ${failedUploads.join('\n• ')}`
+        );
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create task.');
     } finally {
@@ -424,7 +437,7 @@ export const CreateTaskModal = ({
             />
           </div>
 
-          {/* Task Type & Due Date Row */}
+          {/* Type & Priority Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Task Type */}
             <div>
@@ -458,23 +471,69 @@ export const CreateTaskModal = ({
               </div>
             </div>
 
-            {/* Due Date & Time */}
+            {/* Priority Selector */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Due Date & Time
+                Priority
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <input
-                  type="datetime-local"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  disabled={submitting}
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
-                />
+              <div className="flex rounded-xl border border-input p-1 bg-background gap-0.5">
+                {[
+                  { id: 'low', label: 'Low', activeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' },
+                  { id: 'medium', label: 'Med', activeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30' },
+                  { id: 'high', label: 'High', activeClass: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30' },
+                  { id: 'urgent', label: 'Urgent', activeClass: 'bg-destructive/15 text-destructive border-destructive/30' },
+                ].map((p) => {
+                  const active = priority === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPriority(p.id)}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center ${
+                        active
+                          ? `${p.activeClass} border shadow-2xs font-bold`
+                          : 'text-muted-foreground hover:text-foreground border border-transparent'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+          </div>
+
+          {/* Due Date & Time */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+              Due Date & Time
+            </label>
+            <div
+              className="relative cursor-pointer"
+              onClick={() => {
+                try {
+                  dueDatePickerRef.current?.showPicker?.();
+                } catch (err) {
+                  dueDatePickerRef.current?.focus?.();
+                }
+              }}
+            >
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <input
+                ref={dueDatePickerRef}
+                type="datetime-local"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                onClick={(e) => {
+                  try {
+                    e.currentTarget.showPicker?.();
+                  } catch (err) {}
+                }}
+                disabled={submitting}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
+              />
             </div>
           </div>
 

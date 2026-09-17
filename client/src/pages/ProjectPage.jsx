@@ -605,7 +605,7 @@ export const ProjectPage = () => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex items-start gap-4 overflow-x-auto pb-6 min-h-[calc(100vh-220px)] pt-1">
+        <div className="flex items-stretch gap-3.5 overflow-x-auto pb-6 min-h-[calc(100vh-220px)] pt-1">
           {lists.map((list, index) => (
             <React.Fragment key={list._id}>
               <ListColumn
@@ -625,7 +625,7 @@ export const ProjectPage = () => {
               />
               {/* Vertical divider line between the 4 columns */}
               {index < lists.length - 1 && (
-                <div className="w-px self-stretch bg-border/80 shrink-0 my-1 hidden md:block" />
+                <div className="w-px self-stretch bg-border shrink-0 my-1 hidden lg:block" />
               )}
             </React.Fragment>
           ))}
@@ -634,7 +634,7 @@ export const ProjectPage = () => {
         {/* Lifted DragOverlay when a task card is in motion */}
         <DragOverlay>
           {activeTask ? (
-            <div className="w-72 sm:w-80">
+            <div className="w-72">
               <TaskItem task={activeTask} isOverlay membersMap={membersMap} />
             </div>
           ) : null}

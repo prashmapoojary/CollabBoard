@@ -61,6 +61,34 @@ export const TaskItem = ({
   const typeInfo = typeConfig[task.taskType] || typeConfig.task;
   const TypeIcon = typeInfo.icon;
 
+  const priorityConfig = {
+    low: {
+      label: 'Low',
+      dot: 'bg-emerald-500',
+      badge: 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      border: 'border-l-emerald-500',
+    },
+    medium: {
+      label: 'Medium',
+      dot: 'bg-amber-500',
+      badge: 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+      border: 'border-l-amber-500',
+    },
+    high: {
+      label: 'High',
+      dot: 'bg-orange-500',
+      badge: 'text-orange-700 dark:text-orange-400 bg-orange-500/10 border-orange-500/20',
+      border: 'border-l-orange-500',
+    },
+    urgent: {
+      label: 'Urgent',
+      dot: 'bg-destructive',
+      badge: 'text-destructive bg-destructive/10 border-destructive/20',
+      border: 'border-l-destructive',
+    },
+  };
+  const priorityInfo = priorityConfig[task.priority] || priorityConfig.medium;
+
   const formattedDueDate = formatDueDate(task.dueDate);
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
   const subitemProgress = task.subitemProgress;
@@ -72,7 +100,7 @@ export const TaskItem = ({
       {...(sortable ? sortable.attributes : {})}
       {...(sortable ? sortable.listeners : {})}
       onClick={() => onClick?.(task)}
-      className={`p-3.5 bg-background border rounded-xl transition-all select-none space-y-2.5 ${
+      className={`p-3.5 bg-background border border-l-4 ${priorityInfo.border} rounded-xl transition-all select-none space-y-2.5 ${
         isOverlay
           ? 'border-primary/50 shadow-2xl scale-[1.03] rotate-1 ring-2 ring-primary/40 cursor-grabbing'
           : isDragging
@@ -82,7 +110,7 @@ export const TaskItem = ({
           : 'border-border shadow-2xs hover:border-primary/50 hover:shadow-xs cursor-grab active:cursor-grabbing group'
       }`}
     >
-      {/* Top row: Type Icon & Labels */}
+      {/* Top row: Type Icon, Priority & Labels */}
       <div className="flex items-center justify-between gap-2 flex-wrap pointer-events-none">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span
@@ -91,6 +119,14 @@ export const TaskItem = ({
           >
             <TypeIcon className="w-3 h-3" />
             <span>{typeInfo.label}</span>
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${priorityInfo.badge}`}
+            title={`Priority: ${priorityInfo.label}`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${priorityInfo.dot}`} />
+            <span>{priorityInfo.label}</span>
           </span>
 
           {task.labels && task.labels.length > 0 && (

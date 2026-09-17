@@ -31,12 +31,12 @@ export const ListColumn = ({
   return (
     <div
       ref={setNodeRef}
-      className={`w-72 sm:w-80 shrink-0 bg-card border rounded-2xl p-3 flex flex-col max-h-[calc(100vh-190px)] shadow-xs transition-colors duration-150 ${
+      className={`flex-1 min-w-[260px] max-w-full bg-card border rounded-2xl p-3 flex flex-col h-full min-h-[500px] max-h-[calc(100vh-200px)] shadow-xs transition-colors duration-150 ${
         isOver ? 'border-primary/60 bg-primary/[0.02]' : 'border-border'
       }`}
     >
       {/* Column Header (Fixed Title & Live Task Count Badge - No 3-dot Menu) */}
-      <div className="flex items-center justify-between pb-2.5 px-1 border-b border-border select-none">
+      <div className="flex items-center justify-between pb-2.5 px-1 border-b border-border select-none min-h-[36px]">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <h3 className="text-xs font-bold font-serif text-foreground truncate cursor-default">
             {list.title}

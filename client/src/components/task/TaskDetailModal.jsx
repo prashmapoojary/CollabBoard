@@ -48,6 +48,7 @@ export const TaskDetailModal = ({
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editTaskType, setEditTaskType] = useState('task');
+  const [editPriority, setEditPriority] = useState('medium');
   const [editDueDate, setEditDueDate] = useState('');
   const [editAssignees, setEditAssignees] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -59,6 +60,7 @@ export const TaskDetailModal = ({
       setEditTitle(task.title || '');
       setEditDescription(task.description || '');
       setEditTaskType(task.taskType || 'task');
+      setEditPriority(task.priority || 'medium');
       setEditDueDate(toDateTimeLocalValue(task.dueDate));
       setSubitemsProgress(task.subitemProgress || { total: 0, completed: 0 });
       const initialAssigneeIds = (task.assignees || [])
@@ -110,6 +112,29 @@ export const TaskDetailModal = ({
   const currentType = typeConfig[task.taskType] || typeConfig.task;
   const TypeIcon = currentType.icon;
 
+  const priorityConfig = {
+    low: {
+      label: 'Low',
+      badge: 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      dot: 'bg-emerald-500',
+    },
+    medium: {
+      label: 'Medium',
+      badge: 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+      dot: 'bg-amber-500',
+    },
+    high: {
+      label: 'High',
+      badge: 'text-orange-700 dark:text-orange-400 bg-orange-500/10 border-orange-500/20',
+      dot: 'bg-orange-500',
+    },
+    urgent: {
+      label: 'Urgent',
+      badge: 'text-destructive bg-destructive/10 border-destructive/20',
+      dot: 'bg-destructive',
+    },
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return null;
     const d = new Date(dateStr);
@@ -138,6 +163,7 @@ export const TaskDetailModal = ({
         title: editTitle.trim(),
         description: editDescription.trim(),
         taskType: editTaskType,
+        priority: editPriority,
         dueDate: editDueDate ? new Date(editDueDate).toISOString() : null,
         assignees: editAssignees,
       };
@@ -341,7 +367,7 @@ export const TaskDetailModal = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Task Type */}
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -359,6 +385,24 @@ export const TaskDetailModal = ({
                   </select>
                 </div>
 
+                {/* Priority */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Priority
+                  </label>
+                  <select
+                    value={editPriority}
+                    onChange={(e) => setEditPriority(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
+                    disabled={saving}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+
                 {/* Due Date & Time */}
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -368,6 +412,11 @@ export const TaskDetailModal = ({
                     type="datetime-local"
                     value={editDueDate}
                     onChange={(e) => setEditDueDate(e.target.value)}
+                    onClick={(e) => {
+                      try {
+                        e.currentTarget.showPicker?.();
+                      } catch (err) {}
+                    }}
                     className="w-full px-3 py-2 text-xs bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring text-foreground cursor-pointer"
                     disabled={saving}
                   />
@@ -407,12 +456,24 @@ export const TaskDetailModal = ({
             <>
               {/* Title & Type Badge */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${currentType.color}`}
                   >
                     <TypeIcon className="w-3.5 h-3.5" />
                     {currentType.label}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${
+                      (priorityConfig[task.priority] || priorityConfig.medium).badge
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        (priorityConfig[task.priority] || priorityConfig.medium).dot
+                      }`}
+                    />
+                    {(priorityConfig[task.priority] || priorityConfig.medium).label} Priority
                   </span>
                   {task._id && (
                     <span className="text-[11px] font-mono text-muted-foreground">
@@ -467,6 +528,21 @@ export const TaskDetailModal = ({
                   ) : (
                     <span className="text-xs text-muted-foreground">No due date</span>
                   )}
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">
+                    Priority
+                  </span>
+                  <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-secondary text-xs font-medium text-foreground">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        (priorityConfig[task.priority] || priorityConfig.medium).dot
+                      }`}
+                    />
+                    <span>{(priorityConfig[task.priority] || priorityConfig.medium).label}</span>
+                  </div>
                 </div>
 
                 {/* Assignees */}

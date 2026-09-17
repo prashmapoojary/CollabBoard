@@ -20,6 +20,7 @@ export const createTask = async (req, res, next) => {
       description,
       order,
       taskType,
+      priority,
       dueDate,
       assignees,
       labels,
@@ -32,6 +33,7 @@ export const createTask = async (req, res, next) => {
       description: description !== undefined ? description : '',
       order,
       taskType: taskType || 'task',
+      priority: priority || 'medium',
       dueDate: dueDate || null,
       assignees: assignees || [],
       labels: labels || [],
@@ -54,6 +56,7 @@ export const createTask = async (req, res, next) => {
           description: task.description,
           order: task.order,
           taskType: task.taskType,
+          priority: task.priority,
           dueDate: task.dueDate,
           assignees: task.assignees,
           labels: task.labels,
@@ -82,6 +85,7 @@ export const updateTask = async (req, res, next) => {
       description,
       order,
       taskType,
+      priority,
       dueDate,
       assignees,
       labels,
@@ -92,6 +96,7 @@ export const updateTask = async (req, res, next) => {
       description: req.task.description,
       order: req.task.order,
       taskType: req.task.taskType,
+      priority: req.task.priority,
       dueDate: req.task.dueDate,
       assignees: req.task.assignees,
       labels: req.task.labels,
@@ -101,6 +106,7 @@ export const updateTask = async (req, res, next) => {
     if (description !== undefined) req.task.description = description;
     if (order !== undefined) req.task.order = order;
     if (taskType !== undefined) req.task.taskType = taskType;
+    if (priority !== undefined) req.task.priority = priority;
     if (dueDate !== undefined) req.task.dueDate = dueDate;
     if (assignees !== undefined) req.task.assignees = assignees;
     if (labels !== undefined) req.task.labels = labels;
@@ -122,6 +128,7 @@ export const updateTask = async (req, res, next) => {
         description: req.task.description,
         order: req.task.order,
         taskType: req.task.taskType,
+        priority: req.task.priority,
         dueDate: req.task.dueDate,
         assignees: req.task.assignees,
         labels: req.task.labels,

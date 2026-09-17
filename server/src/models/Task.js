@@ -66,6 +66,14 @@ const taskSchema = new mongoose.Schema(
       },
       default: 'task',
     },
+    priority: {
+      type: String,
+      enum: {
+        values: ['low', 'medium', 'high', 'urgent'],
+        message: '{VALUE} is not a valid priority',
+      },
+      default: 'medium',
+    },
     order: {
       type: Number,
       required: [true, 'Task order index is required'],

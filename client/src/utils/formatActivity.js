@@ -104,12 +104,13 @@ export const formatActivityParts = (activity, listsMap = {}) => {
         };
       }
       const title = after?.title || before?.title || 'a task';
-      if (after?.priority && before?.priority) {
+      if (after?.priority && before?.priority !== after?.priority) {
+        const capitalized = after.priority.charAt(0).toUpperCase() + after.priority.slice(1);
         return {
           actorName,
           actionText: 'changed priority of',
           targetName: `"${title}"`,
-          extraText: `to ${after.priority}`,
+          extraText: `to ${capitalized}`,
         };
       }
       return {

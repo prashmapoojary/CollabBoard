@@ -391,10 +391,27 @@ describe('Kanban Core: Projects, Lists, Tasks Test Suite (Step 3)', () => {
       assert.equal(res.body.success, true);
       assert.equal(res.body.task.title, 'Implement Authentication Tests');
       assert.equal(res.body.task.taskType, 'story');
+      assert.equal(res.body.task.priority, 'medium'); // Default priority
       assert.equal(res.body.task.labels[0].name, 'Backend');
       assert.equal(res.body.task.labels[0].color, '#3b82f6');
       assert.equal(res.body.task.assignees[0], editorId);
       testTask = res.body.task;
+    });
+
+    test('POST /api/lists/:listId/tasks creates task with explicit priority', async () => {
+      const res = await request(app)
+        .post(`/api/lists/${testList._id}/tasks`)
+        .set('Authorization', `Bearer ${editorToken}`)
+        .send({
+          title: 'Critical Database Bug',
+          order: 1,
+          taskType: 'bug',
+          priority: 'urgent',
+        });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.task.priority, 'urgent');
     });
 
     test('POST /api/lists/:listId/tasks rejects viewer with 403', async () => {
@@ -409,7 +426,7 @@ describe('Kanban Core: Projects, Lists, Tasks Test Suite (Step 3)', () => {
       assert.equal(res.status, 403);
     });
 
-    test('POST /api/lists/:listId/tasks validates taskType and label color format', async () => {
+    test('POST /api/lists/:listId/tasks validates taskType and label color format and priority', async () => {
       // Invalid taskType
       const res1 = await request(app)
         .post(`/api/lists/${testList._id}/tasks`)
@@ -420,6 +437,17 @@ describe('Kanban Core: Projects, Lists, Tasks Test Suite (Step 3)', () => {
           taskType: 'feature', // not task|bug|story
         });
       assert.equal(res1.status, 400);
+
+      // Invalid priority
+      const resPriority = await request(app)
+        .post(`/api/lists/${testList._id}/tasks`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          title: 'Invalid Priority Task',
+          order: 1,
+          priority: 'super-urgent', // not low|medium|high|urgent
+        });
+      assert.equal(resPriority.status, 400);
 
       // Invalid label color (must be hex code)
       const res2 = await request(app)
@@ -433,13 +461,14 @@ describe('Kanban Core: Projects, Lists, Tasks Test Suite (Step 3)', () => {
       assert.equal(res2.status, 400);
     });
 
-    test('PATCH /api/tasks/:id allows updating task properties', async () => {
+    test('PATCH /api/tasks/:id allows updating task properties including priority', async () => {
       const res = await request(app)
         .patch(`/api/tasks/${testTask._id}`)
         .set('Authorization', `Bearer ${ownerToken}`)
         .send({
           title: 'Updated Task Title',
           taskType: 'bug',
+          priority: 'high',
           description: 'Detailed bug reproduction steps',
         });
 
@@ -447,6 +476,7 @@ describe('Kanban Core: Projects, Lists, Tasks Test Suite (Step 3)', () => {
       assert.equal(res.body.success, true);
       assert.equal(res.body.task.title, 'Updated Task Title');
       assert.equal(res.body.task.taskType, 'bug');
+      assert.equal(res.body.task.priority, 'high');
       assert.equal(res.body.task.description, 'Detailed bug reproduction steps');
     });
 

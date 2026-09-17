@@ -169,6 +169,26 @@
   body {
     @apply bg-background text-foreground;
   }
+  input[type="datetime-local"],
+  input[type="date"],
+  input[type="time"] {
+    color-scheme: light dark;
+  }
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.85;
+    padding: 2px;
+    border-radius: 4px;
+    transition: opacity 0.15s ease;
+  }
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+  input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
 }
+
 
 
