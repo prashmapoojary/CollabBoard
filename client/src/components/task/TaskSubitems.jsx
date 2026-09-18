@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../api/axios';
 import {
   CheckSquare,
@@ -19,6 +20,7 @@ export const TaskSubitems = ({
 }) => {
   const { user: currentUser } = useAuth();
   const { socket } = useSocket();
+  const { toast } = useToast();
 
   const [subitems, setSubitems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +191,7 @@ export const TaskSubitems = ({
       setSubitems((prev) => prev.filter((s) => s._id !== subitemId));
     } catch (err) {
       console.error('Failed to delete subitem:', err);
-      alert(err.response?.data?.message || 'Failed to delete checklist item.');
+      toast.error(err.response?.data?.message || 'Failed to delete checklist item.');
     } finally {
       setDeletingId(null);
     }
@@ -241,9 +243,19 @@ export const TaskSubitems = ({
       {/* Checklist items list */}
       <div className="flex-1 overflow-y-auto space-y-2 max-h-[360px] pr-1">
         {loading ? (
-          <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin text-primary mb-2" />
-            <p className="text-xs">Loading subitems...</p>
+          <div className="space-y-2 pt-1">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border/50 bg-secondary/15 animate-pulse"
+              >
+                <div className="flex items-center gap-2.5 flex-1">
+                  <div className="w-4 h-4 rounded bg-muted/70 shrink-0" />
+                  <div className="h-3.5 bg-muted/60 rounded w-2/3" />
+                </div>
+                <div className="h-3 bg-muted/40 rounded w-16" />
+              </div>
+            ))}
           </div>
         ) : subitems.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground">

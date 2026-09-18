@@ -33,7 +33,7 @@ export const DashboardPage = () => {
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight font-serif">CollabBoard</h1>
-            <p className="text-[11px] text-muted-foreground">Step 2: Workspace & Team RBAC</p>
+            <p className="text-[11px] text-muted-foreground">Workspace & Team Dashboard</p>
           </div>
         </div>
 

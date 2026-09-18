@@ -143,17 +143,15 @@ export const inviteMember = async (req, res, next) => {
       },
     });
 
-    // 4. Dispatch invitation email in background
-    try {
-      await sendWorkspaceInviteEmail(
-        invitedUser.email,
-        req.user.name,
-        req.workspace.name,
-        role
-      );
-    } catch (mailErr) {
+    // 4. Dispatch invitation email in background (non-blocking fire-and-forget)
+    sendWorkspaceInviteEmail(
+      invitedUser.email,
+      req.user.name,
+      req.workspace.name,
+      role
+    ).catch((mailErr) => {
       console.error('[Email Warning] Workspace invite email failed to dispatch:', mailErr.message);
-    }
+    });
 
     const populatedWorkspace = await Workspace.findById(req.workspace._id)
       .populate('ownerId', 'name email avatarUrl')

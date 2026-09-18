@@ -31,7 +31,7 @@ export const ListColumn = ({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[260px] max-w-full bg-card border rounded-2xl p-3 flex flex-col h-full min-h-[500px] max-h-[calc(100vh-200px)] shadow-xs transition-colors duration-150 ${
+      className={`flex-1 snap-center sm:snap-align-none w-[85vw] max-w-[340px] sm:w-auto sm:min-w-[300px] max-w-full bg-card border rounded-2xl p-3 flex flex-col h-full min-h-[500px] max-h-[calc(100vh-200px)] shadow-xs transition-colors duration-150 shrink-0 ${
         isOver ? 'border-primary/60 bg-primary/[0.02]' : 'border-border'
       }`}
     >
@@ -62,8 +62,9 @@ export const ListColumn = ({
         </SortableContext>
 
         {tasks.length === 0 && (
-          <div className="py-8 text-center text-muted-foreground/50 text-xs italic border border-dashed border-border/80 rounded-xl select-none">
-            No tasks in this list
+          <div className="py-10 px-3 text-center border border-dashed border-border/70 rounded-xl select-none flex flex-col items-center justify-center gap-1 text-muted-foreground/60">
+            <span className="text-xs font-medium text-foreground/70">No tasks in this list</span>
+            <span className="text-[11px] text-muted-foreground/50">Drop tasks here or create one</span>
           </div>
         )}
       </div>

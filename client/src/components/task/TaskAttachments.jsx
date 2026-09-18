@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../api/axios';
 import { formatRelativeTime } from '../../utils/formatActivity';
 import {
@@ -82,6 +83,7 @@ export const TaskAttachments = ({
 }) => {
   const { user: currentUser } = useAuth();
   const { socket } = useSocket();
+  const { toast } = useToast();
 
   const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -303,7 +305,7 @@ export const TaskAttachments = ({
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('Failed to download file:', err);
-      alert(err.response?.data?.message || 'Failed to download file.');
+      toast.error(err.response?.data?.message || 'Failed to download file.');
     } finally {
       setDownloadingId(null);
     }
@@ -325,7 +327,7 @@ export const TaskAttachments = ({
       });
     } catch (err) {
       console.error('Failed to delete attachment:', err);
-      alert(err.response?.data?.message || 'Failed to delete attachment.');
+      toast.error(err.response?.data?.message || 'Failed to delete attachment.');
     } finally {
       setDeletingId(null);
     }
@@ -502,9 +504,22 @@ export const TaskAttachments = ({
       {/* Attachments List */}
       <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[360px] pr-1">
         {loading ? (
-          <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin text-primary mb-2" />
-            <p className="text-xs">Loading attachments...</p>
+          <div className="space-y-2.5 pt-1">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between gap-3 p-3 rounded-xl bg-background border border-border/60 animate-pulse"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-9 h-9 rounded-xl bg-muted/70 shrink-0" />
+                  <div className="space-y-1.5 flex-1 py-0.5">
+                    <div className="h-3.5 bg-muted/70 rounded w-1/2" />
+                    <div className="h-2.5 bg-muted/40 rounded w-1/4" />
+                  </div>
+                </div>
+                <div className="h-7 w-16 bg-muted/40 rounded-lg shrink-0" />
+              </div>
+            ))}
           </div>
         ) : attachments.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground">

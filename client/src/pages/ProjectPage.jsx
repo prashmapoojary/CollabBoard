@@ -33,6 +33,8 @@ import { ListColumn } from '../components/kanban/ListColumn';
 import { TaskItem } from '../components/kanban/TaskItem';
 import { TaskDetailModal } from '../components/task/TaskDetailModal';
 import { ActivityFeed } from '../components/activity/ActivityFeed';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export const ProjectPage = () => {
   const { projectId } = useParams();
@@ -40,11 +42,34 @@ export const ProjectPage = () => {
   const { workspace, workspaceId, currentUserRole, refreshProjects, refreshTrigger } =
     useOutletContext();
   const { socket, isConnected, reconnectCounter } = useSocket();
+  const { user: currentUser } = useAuth();
+  const { toast, addToast } = useToast();
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [presenceUsers, setPresenceUsers] = useState([]);
+
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  const projectRef = useRef(project);
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
+
+  const getAssigneeIds = (assignees) => {
+    if (!Array.isArray(assignees)) return [];
+    return assignees
+      .map((a) => {
+        if (!a) return null;
+        if (typeof a === 'string') return a;
+        return (a._id || a.id || a).toString();
+      })
+      .filter(Boolean);
+  };
 
   // Activity feed sidebar state and live refresh trigger
   const [isActivityOpen, setIsActivityOpen] = useState(false);
@@ -53,6 +78,16 @@ export const ProjectPage = () => {
   // Selected task for detail inspection / editing
   const [selectedTask, setSelectedTask] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const isDetailOpenRef = useRef(isDetailOpen);
+  useEffect(() => {
+    isDetailOpenRef.current = isDetailOpen;
+  }, [isDetailOpen]);
+
+  const selectedTaskRef = useRef(selectedTask);
+  useEffect(() => {
+    selectedTaskRef.current = selectedTask;
+  }, [selectedTask]);
 
   // Memoized mapping of member ID -> user object for avatar and name resolution
   const membersMap = React.useMemo(() => {
@@ -150,6 +185,16 @@ export const ProjectPage = () => {
     const handleRemoteTaskCreated = (data) => {
       const task = data?.task || data;
       if (task?.projectId?.toString() === projectId?.toString()) {
+        const currentUserId = (currentUserRef.current?._id || currentUserRef.current?.id)?.toString();
+        const taskAssignees = getAssigneeIds(task.assignees);
+        if (currentUserId && taskAssignees.includes(currentUserId)) {
+          addToast({
+            id: Date.now() + Math.random(),
+            title: 'Task Assigned',
+            message: `You were assigned to "${task.title || 'a task'}"`,
+            type: 'info',
+          });
+        }
         setProject((prev) => applyTaskCreated(prev, task));
         setActivityRefreshTrigger((prev) => prev + 1);
       }
@@ -158,6 +203,31 @@ export const ProjectPage = () => {
     const handleRemoteTaskUpdated = (data) => {
       const task = data?.task || data;
       if (task?.projectId?.toString() === projectId?.toString()) {
+        const currentUserId = (currentUserRef.current?._id || currentUserRef.current?.id)?.toString();
+        const updatedAssignees = getAssigneeIds(task.assignees);
+        if (currentUserId && updatedAssignees.includes(currentUserId)) {
+          let wasAlreadyAssigned = false;
+          if (projectRef.current?.lists) {
+            for (const list of projectRef.current.lists) {
+              const existing = list.tasks?.find((t) => t._id?.toString() === task._id?.toString());
+              if (existing) {
+                const prevAssignees = getAssigneeIds(existing.assignees);
+                if (prevAssignees.includes(currentUserId)) {
+                  wasAlreadyAssigned = true;
+                }
+                break;
+              }
+            }
+          }
+          if (!wasAlreadyAssigned) {
+            addToast({
+              id: Date.now() + Math.random(),
+              title: 'Task Assigned',
+              message: `You were assigned to "${task.title || 'a task'}"`,
+              type: 'info',
+            });
+          }
+        }
         setProject((prev) => applyTaskUpdated(prev, task));
         setSelectedTask((prev) => (prev?._id === task._id ? { ...prev, ...task } : prev));
         setActivityRefreshTrigger((prev) => prev + 1);
@@ -214,7 +284,7 @@ export const ProjectPage = () => {
     const handleRemoteProjectDeleted = (data) => {
       const deletedPid = (data?.projectId || data?._id || data)?.toString();
       if (deletedPid === projectId?.toString()) {
-        alert('This project has been deleted.');
+        toast.error('This project has been deleted.');
         navigate(`/workspaces/${workspaceId}/all`);
       }
     };
@@ -250,6 +320,32 @@ export const ProjectPage = () => {
       setActivityRefreshTrigger((prev) => prev + 1);
     };
 
+    const handleRemoteCommentCreated = (data) => {
+      handleRemoteGenericMutation();
+      const currentUserId = (currentUserRef.current?._id || currentUserRef.current?.id)?.toString();
+      const cTaskId = data?.taskId?.toString();
+      const authorId = (data?.comment?.authorId?._id || data?.comment?.authorId)?.toString();
+
+      if (
+        isDetailOpenRef.current &&
+        selectedTaskRef.current &&
+        selectedTaskRef.current._id?.toString() === cTaskId &&
+        currentUserId &&
+        authorId !== currentUserId
+      ) {
+        const taskAssignees = getAssigneeIds(selectedTaskRef.current.assignees);
+        if (taskAssignees.includes(currentUserId)) {
+          const authorName = data?.comment?.authorId?.name || 'A team member';
+          addToast({
+            id: Date.now() + Math.random(),
+            title: 'New Comment',
+            message: `${authorName} commented on "${selectedTaskRef.current.title || 'this task'}"`,
+            type: 'info',
+          });
+        }
+      }
+    };
+
     socket.on('project:presence:list', handlePresenceList);
     socket.on('member:presence', handleMemberPresence);
     socket.on('task:created', handleRemoteTaskCreated);
@@ -265,7 +361,7 @@ export const ProjectPage = () => {
     socket.on('subitem:deleted', handleRemoteSubitemMutation);
     socket.on('attachment:created', handleRemoteGenericMutation);
     socket.on('attachment:deleted', handleRemoteGenericMutation);
-    socket.on('comment:created', handleRemoteGenericMutation);
+    socket.on('comment:created', handleRemoteCommentCreated);
     socket.on('comment:deleted', handleRemoteGenericMutation);
 
     return () => {
@@ -285,7 +381,7 @@ export const ProjectPage = () => {
       socket.off('subitem:deleted', handleRemoteSubitemMutation);
       socket.off('attachment:created', handleRemoteGenericMutation);
       socket.off('attachment:deleted', handleRemoteGenericMutation);
-      socket.off('comment:created', handleRemoteGenericMutation);
+      socket.off('comment:created', handleRemoteCommentCreated);
       socket.off('comment:deleted', handleRemoteGenericMutation);
     };
   }, [socket, projectId, workspaceId, navigate]);
@@ -481,15 +577,60 @@ export const ProjectPage = () => {
       console.error('Failed to persist task move:', err);
       // Rollback to previous state on failure
       setProject(previousProject);
-      alert(err.response?.data?.message || 'Failed to move task. Reverting change.');
+      toast.error(err.response?.data?.message || 'Failed to move task. Reverting change.');
     }
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 text-muted-foreground">
-        <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
-        <p className="text-xs">Loading project board...</p>
+      <div className="space-y-5 max-w-full mx-auto animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-muted/60" />
+            <div className="space-y-1.5">
+              <div className="h-5 bg-muted/60 rounded-md w-48" />
+              <div className="h-3 bg-muted/40 rounded-md w-24" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-8 bg-muted/50 rounded-xl w-24" />
+            <div className="h-8 bg-muted/50 rounded-xl w-20" />
+          </div>
+        </div>
+
+        {/* 4-Column Board Skeleton */}
+        <div className="flex items-stretch gap-3.5 overflow-x-auto pb-6 min-h-[calc(100vh-220px)] pt-1 snap-x snap-mandatory scroll-smooth overscroll-x-contain">
+          {[1, 2, 3, 4].map((colIndex) => (
+            <div
+              key={colIndex}
+              className="flex-1 snap-center sm:snap-align-none w-[85vw] max-w-[340px] sm:w-auto sm:min-w-[300px] bg-card/60 border border-border rounded-2xl p-3 flex flex-col h-[520px] shrink-0 space-y-3"
+            >
+              <div className="flex items-center justify-between pb-2.5 px-1 border-b border-border/60">
+                <div className="h-3.5 bg-muted/60 rounded-md w-24" />
+                <div className="h-4 bg-muted/50 rounded-full w-6" />
+              </div>
+              <div className="space-y-2.5 flex-1">
+                {[1, 2, 3].map((cardIndex) => (
+                  <div
+                    key={cardIndex}
+                    className="p-3.5 bg-background border border-border/70 rounded-xl space-y-2.5"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="h-3.5 bg-muted/60 rounded w-16" />
+                      <div className="h-3 bg-muted/40 rounded w-8" />
+                    </div>
+                    <div className="h-4 bg-muted/70 rounded w-3/4" />
+                    <div className="flex justify-between items-center pt-1 border-t border-border/30">
+                      <div className="h-3 bg-muted/50 rounded w-16" />
+                      <div className="w-5 h-5 rounded-full bg-muted/60" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -605,30 +746,44 @@ export const ProjectPage = () => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex items-stretch gap-3.5 overflow-x-auto pb-6 min-h-[calc(100vh-220px)] pt-1">
-          {lists.map((list, index) => (
-            <React.Fragment key={list._id}>
-              <ListColumn
-                list={list}
-                projectId={projectId}
-                workspaceId={workspaceId}
-                currentUserRole={currentUserRole}
-                membersMap={membersMap}
-                onTaskClick={(task, parentList) => {
-                  setSelectedTask({
-                    ...task,
-                    projectName: project.title,
-                    listName: parentList?.title || 'List',
-                  });
-                  setIsDetailOpen(true);
-                }}
-              />
-              {/* Vertical divider line between the 4 columns */}
-              {index < lists.length - 1 && (
-                <div className="w-px self-stretch bg-border shrink-0 my-1 hidden lg:block" />
-              )}
-            </React.Fragment>
-          ))}
+        <div className="flex items-stretch gap-3.5 overflow-x-auto pb-6 min-h-[calc(100vh-220px)] pt-1 snap-x snap-mandatory scroll-smooth overscroll-x-contain">
+          {lists.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-card border border-dashed border-border rounded-2xl min-h-[400px]">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+                <Kanban className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold font-serif text-foreground mb-1">
+                No lists on this board
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                Default columns (To Do, In Progress, In Review, Done) can be added or customized.
+              </p>
+            </div>
+          ) : (
+            lists.map((list, index) => (
+              <React.Fragment key={list._id}>
+                <ListColumn
+                  list={list}
+                  projectId={projectId}
+                  workspaceId={workspaceId}
+                  currentUserRole={currentUserRole}
+                  membersMap={membersMap}
+                  onTaskClick={(task, parentList) => {
+                    setSelectedTask({
+                      ...task,
+                      projectName: project.title,
+                      listName: parentList?.title || 'List',
+                    });
+                    setIsDetailOpen(true);
+                  }}
+                />
+                {/* Vertical divider line between the 4 columns */}
+                {index < lists.length - 1 && (
+                  <div className="w-px self-stretch bg-border shrink-0 my-1 hidden lg:block" />
+                )}
+              </React.Fragment>
+            ))
+          )}
         </div>
 
         {/* Lifted DragOverlay when a task card is in motion */}

@@ -5,10 +5,39 @@ import { List } from '../models/List.js';
 import { Subitem } from '../models/Subitem.js';
 import { Attachment } from '../models/Attachment.js';
 import { LogHour } from '../models/LogHour.js';
+import { User } from '../models/User.js';
+import { sendTaskAssignmentEmail } from '../services/emailService.js';
 import { UPLOADS_DIR } from '../middleware/uploadMiddleware.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { broadcastToProject } from '../socket/index.js';
 import { logActivity } from '../utils/logActivity.js';
+
+/**
+ * Asynchronously notify newly assigned users via email (fire-and-forget).
+ */
+const notifyNewAssignees = async ({ newAssigneeIds, assignerName, taskTitle, projectName, taskId, projectId }) => {
+  if (!newAssigneeIds || newAssigneeIds.length === 0) return;
+  try {
+    const users = await User.find({ _id: { $in: newAssigneeIds } }).select('name email');
+    for (const u of users) {
+      if (u && u.email) {
+        sendTaskAssignmentEmail({
+          toEmail: u.email,
+          assigneeName: u.name || 'Team Member',
+          assignerName,
+          taskTitle,
+          projectName,
+          taskId,
+          projectId,
+        }).catch((err) => {
+          console.error(`[Email Warning] Task assignment email to ${u.email} failed:`, err.message);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[Notification Error] Failed to fetch assignees for assignment email:', error.message);
+  }
+};
 
 /**
  * POST /api/lists/:listId/tasks
@@ -66,6 +95,17 @@ export const createTask = async (req, res, next) => {
       },
     });
 
+    if (task.assignees && task.assignees.length > 0) {
+      notifyNewAssignees({
+        newAssigneeIds: task.assignees,
+        assignerName: req.user?.name || 'A team member',
+        taskTitle: task.title,
+        projectName: req.project?.name || 'Project',
+        taskId: task._id,
+        projectId: req.project?._id,
+      });
+    }
+
     res.status(201).json({
       success: true,
       task,
@@ -92,6 +132,7 @@ export const updateTask = async (req, res, next) => {
       labels,
     } = req.body;
 
+    const beforeAssignees = (req.task.assignees || []).map((id) => id.toString());
     const beforeState = {
       title: req.task.title,
       description: req.task.description,
@@ -113,6 +154,21 @@ export const updateTask = async (req, res, next) => {
     if (labels !== undefined) req.task.labels = labels;
 
     await req.task.save();
+
+    const currentAssignees = (req.task.assignees || []).map((id) => id.toString());
+    const beforeSet = new Set(beforeAssignees);
+    const newlyAddedIds = currentAssignees.filter((id) => !beforeSet.has(id));
+
+    if (newlyAddedIds.length > 0) {
+      notifyNewAssignees({
+        newAssigneeIds: newlyAddedIds,
+        assignerName: req.user?.name || 'A team member',
+        taskTitle: req.task.title,
+        projectName: req.project?.name || 'Project',
+        taskId: req.task._id,
+        projectId: req.project?._id,
+      });
+    }
 
     broadcastToProject(req, req.project._id, 'task:updated', { task: req.task });
 

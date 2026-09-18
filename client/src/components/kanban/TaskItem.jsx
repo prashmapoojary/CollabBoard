@@ -110,53 +110,59 @@ export const TaskItem = ({
           : 'border-border shadow-2xs hover:border-primary/50 hover:shadow-xs cursor-grab active:cursor-grabbing group'
       }`}
     >
-      {/* Top row: Type Icon, Priority & Labels */}
-      <div className="flex items-center justify-between gap-2 flex-wrap pointer-events-none">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Top row: Type Icon, Labels & Task ID */}
+      <div className="flex items-center justify-between gap-2 pointer-events-none">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+          {/* Compact Task Type Badge */}
           <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${typeInfo.color}`}
-            title={`Type: ${task.taskType || 'task'}`}
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border shrink-0 ${typeInfo.color}`}
+            title={`Type: ${task.taskType || 'task'} | Priority: ${priorityInfo.label}`}
           >
             <TypeIcon className="w-3 h-3" />
             <span>{typeInfo.label}</span>
           </span>
 
-          <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${priorityInfo.badge}`}
-            title={`Priority: ${priorityInfo.label}`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${priorityInfo.dot}`} />
-            <span>{priorityInfo.label}</span>
-          </span>
-
+          {/* Streamlined Label Chips (Max 2 with +N overflow) */}
           {task.labels && task.labels.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {task.labels.map((label, idx) => (
+            <div className="flex items-center gap-1 flex-wrap">
+              {task.labels.slice(0, 2).map((label, idx) => (
                 <span
                   key={idx}
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium border"
                   style={{
                     backgroundColor: `${label.color}15`,
                     borderColor: `${label.color}35`,
                     color: label.color,
                   }}
+                  title={`Label: ${label.name}`}
                 >
-                  <Tag className="w-2.5 h-2.5" />
-                  <span>{label.name}</span>
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: label.color }}
+                  />
+                  <span className="truncate max-w-[80px]">{label.name}</span>
                 </span>
               ))}
+              {task.labels.length > 2 && (
+                <span
+                  className="px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-secondary text-muted-foreground border border-border shrink-0"
+                  title={task.labels.slice(2).map((l) => l.name).join(', ')}
+                >
+                  +{task.labels.length - 2}
+                </span>
+              )}
             </div>
           )}
         </div>
 
         {task._id && (
-          <span className="text-[10px] font-mono text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity">
+          <span className="text-[10px] font-mono text-muted-foreground/60 group-hover:text-muted-foreground transition-colors shrink-0">
             #{task._id.slice(-4).toUpperCase()}
           </span>
         )}
       </div>
 
-      {/* Title */}
+      {/* Title (Primary focal point) */}
       <h4 className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors leading-snug break-words pointer-events-none">
         {task.title}
       </h4>
@@ -168,21 +174,22 @@ export const TaskItem = ({
         </p>
       )}
 
-      {/* Bottom row: Due Date & Assignees */}
-      <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px] pointer-events-none">
-        {/* Due Date & Subitem Progress */}
-        <div className="flex items-center gap-2">
-          {formattedDueDate ? (
+      {/* Bottom row: Due Date, Subitems, Attachments & Assignees */}
+      <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px] pointer-events-none gap-2">
+        {/* Left side: Due Date, Subitem Progress & Attachment Count */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {formattedDueDate && (
             <span
-              className={`inline-flex items-center gap-1 font-medium ${
-                isOverdue ? 'text-destructive font-semibold' : 'text-muted-foreground'
+              className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md border ${
+                isOverdue
+                  ? 'text-destructive bg-destructive/10 border-destructive/20 font-semibold'
+                  : 'text-muted-foreground bg-secondary/50 border-border'
               }`}
+              title={`Due: ${formattedDueDate}${isOverdue ? ' (Overdue)' : ''}`}
             >
               <Calendar className="w-3 h-3" />
               <span>{formattedDueDate}</span>
             </span>
-          ) : (
-            <span className="text-muted-foreground/50 text-[10px]">—</span>
           )}
 
           {/* Subitem Progress Badge */}
@@ -191,7 +198,7 @@ export const TaskItem = ({
               className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md border ${
                 subitemProgress.completed === subitemProgress.total
                   ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                  : 'text-muted-foreground bg-secondary border-border'
+                  : 'text-muted-foreground bg-secondary/50 border-border'
               }`}
               title={`Subtasks: ${subitemProgress.completed} of ${subitemProgress.total} completed`}
             >
@@ -205,7 +212,7 @@ export const TaskItem = ({
           {/* Attachment Count Badge */}
           {(task.attachmentCount > 0 || task.attachmentsCount > 0) && (
             <span
-              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md border text-muted-foreground bg-secondary border-border"
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md border text-muted-foreground bg-secondary/50 border-border"
               title={`Attachments: ${task.attachmentCount || task.attachmentsCount}`}
             >
               <Paperclip className="w-3 h-3 text-primary" />

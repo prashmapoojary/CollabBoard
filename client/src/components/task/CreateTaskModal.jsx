@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/axios';
+import { useToast } from '../../context/ToastContext';
 import {
   X,
   Loader2,
@@ -49,6 +50,7 @@ export const CreateTaskModal = ({
   selectedProjectId = null,
   onTaskCreated,
 }) => {
+  const { toast } = useToast();
   const [projectId, setProjectId] = useState(
     selectedProjectId || (projects.length > 0 ? projects[0]._id : '')
   );
@@ -309,12 +311,16 @@ export const CreateTaskModal = ({
       onClose();
 
       if (failedUploads.length > 0) {
-        alert(
-          `Task "${createdTask.title}" was created successfully, but ${failedUploads.length} attachment(s) failed to upload:\n• ${failedUploads.join('\n• ')}`
+        toast.warning(
+          `Task created, but ${failedUploads.length} attachment(s) failed: ${failedUploads.join(', ')}`
         );
+      } else {
+        toast.success(`Task "${createdTask.title}" created successfully!`);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create task.');
+      const msg = err.response?.data?.message || 'Failed to create task.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
       setUploadStatus('');
@@ -322,14 +328,14 @@ export const CreateTaskModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div
-        className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-card-foreground animate-in zoom-in-95 duration-150"
+        className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh] text-card-foreground animate-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-secondary/30">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between bg-secondary/30">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <CheckSquare className="w-4 h-4" />
@@ -348,7 +354,7 @@ export const CreateTaskModal = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {error && (
             <div className="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -787,7 +793,7 @@ export const CreateTaskModal = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}

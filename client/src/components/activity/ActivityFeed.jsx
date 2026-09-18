@@ -188,15 +188,15 @@ export const ActivityFeed = ({
       />
 
       {/* Drawer Container */}
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10 pointer-events-none">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 pointer-events-none">
         <div
-          className="w-screen max-w-md bg-card border-l border-border shadow-2xl flex flex-col pointer-events-auto animate-in slide-in-from-right duration-200 text-card-foreground"
+          className="w-screen max-w-full sm:max-w-md bg-card border-l border-border shadow-2xl flex flex-col pointer-events-auto animate-in slide-in-from-right duration-200 text-card-foreground"
           role="dialog"
           aria-modal="true"
           aria-label="Project Activity Feed"
         >
           {/* Drawer Header */}
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-secondary/30">
+          <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-border flex items-center justify-between bg-secondary/30">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
                 <History className="w-4 h-4" />

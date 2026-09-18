@@ -48,8 +48,8 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md bg-card text-card-foreground rounded-2xl shadow-lg border border-border p-8">
+    <div className="min-h-screen flex items-center justify-center bg-background px-3 sm:px-4 py-6 sm:py-12">
+      <div className="w-full max-w-md bg-card text-card-foreground rounded-2xl shadow-lg border border-border p-5 sm:p-8">
         {/* Brand Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary mb-3">

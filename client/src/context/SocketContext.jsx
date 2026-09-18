@@ -9,6 +9,7 @@ export const SocketProvider = ({ children }) => {
   const { accessToken, isAuthenticated } = useAuth();
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [socketId, setLocalSocketId] = useState(null);
   const [reconnectCounter, setReconnectCounter] = useState(0);
 
@@ -24,6 +25,7 @@ export const SocketProvider = ({ children }) => {
       }
       setSocket(null);
       setIsConnected(false);
+      setIsReconnecting(false);
       setLocalSocketId(null);
       setSocketId(null);
       hasConnectedOnceRef.current = false;
@@ -45,6 +47,7 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('connect', () => {
       setIsConnected(true);
+      setIsReconnecting(false);
       setLocalSocketId(newSocket.id);
       setSocketId(newSocket.id);
 
@@ -58,6 +61,9 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('disconnect', (reason) => {
       setIsConnected(false);
+      if (hasConnectedOnceRef.current) {
+        setIsReconnecting(true);
+      }
       setLocalSocketId(null);
       setSocketId(null);
       if (reason === 'io server disconnect') {
@@ -69,6 +75,9 @@ export const SocketProvider = ({ children }) => {
     newSocket.on('connect_error', (err) => {
       console.warn('Socket connection error:', err?.message || err);
       setIsConnected(false);
+      if (hasConnectedOnceRef.current) {
+        setIsReconnecting(true);
+      }
     });
 
     return () => {
@@ -76,6 +85,7 @@ export const SocketProvider = ({ children }) => {
       socketRef.current = null;
       setSocket(null);
       setIsConnected(false);
+      setIsReconnecting(false);
       setLocalSocketId(null);
       setSocketId(null);
       hasConnectedOnceRef.current = false;
@@ -85,6 +95,7 @@ export const SocketProvider = ({ children }) => {
   const value = {
     socket,
     isConnected,
+    isReconnecting,
     socketId,
     reconnectCounter,
   };

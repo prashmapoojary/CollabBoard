@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../api/axios';
 import {
   X,
@@ -39,6 +40,7 @@ export const TaskDetailModal = ({
   onTaskDeleted,
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'subitems' | 'attachments' | 'comments' | 'loghours'
   const [commentsCount, setCommentsCount] = useState(0);
@@ -191,8 +193,11 @@ export const TaskDetailModal = ({
       };
       onTaskUpdated?.(updated);
       setIsEditing(false);
+      toast.success('Task details updated.');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update task.');
+      const msg = err.response?.data?.message || 'Failed to update task.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -210,23 +215,26 @@ export const TaskDetailModal = ({
     try {
       await api.delete(`/tasks/${task._id}`);
       onTaskDeleted?.(task._id);
+      toast.success(`Task "${task.title}" deleted.`);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete task.');
+      const msg = err.response?.data?.message || 'Failed to delete task.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setDeleting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div
-        className="w-full max-w-xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-card-foreground animate-in zoom-in-95 duration-150"
+        className="w-full max-w-xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh] text-card-foreground animate-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
       >
         {/* Header Breadcrumbs & Actions */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-secondary/30">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border flex items-center justify-between bg-secondary/30">
           <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             <span className="inline-flex items-center gap-1 font-medium text-foreground">
               <FolderKanban className="w-3.5 h-3.5 text-primary" />
@@ -248,7 +256,7 @@ export const TaskDetailModal = ({
         </div>
 
         {/* Navigation Tabs (Details vs Subitems vs Attachments vs Comments) */}
-        <div className="px-6 border-b border-border flex items-center gap-1 bg-secondary/15 overflow-x-auto">
+        <div className="px-3 sm:px-6 border-b border-border flex items-center gap-1 bg-secondary/15 overflow-x-auto scrollbar-none">
           <button
             type="button"
             onClick={() => setActiveTab('details')}
@@ -336,7 +344,7 @@ export const TaskDetailModal = ({
         </div>
 
         {activeTab === 'subitems' ? (
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <TaskSubitems
               taskId={task._id}
               currentUserRole={currentUserRole}
@@ -344,7 +352,7 @@ export const TaskDetailModal = ({
             />
           </div>
         ) : activeTab === 'attachments' ? (
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <TaskAttachments
               taskId={task._id}
               currentUserRole={currentUserRole}
@@ -352,7 +360,7 @@ export const TaskDetailModal = ({
             />
           </div>
         ) : activeTab === 'comments' ? (
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <TaskComments
               taskId={task._id}
               currentUserRole={currentUserRole}
@@ -360,7 +368,7 @@ export const TaskDetailModal = ({
             />
           </div>
         ) : activeTab === 'loghours' ? (
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <TaskLogHours
               taskId={task._id}
               currentUserRole={currentUserRole}
@@ -369,7 +377,7 @@ export const TaskDetailModal = ({
           </div>
         ) : (
           /* Content Body: Task Details */
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
             {error && (
               <div className="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -526,7 +534,7 @@ export const TaskDetailModal = ({
               </div>
 
               {/* Properties Grid */}
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-secondary/30 border border-border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl bg-secondary/30 border border-border">
                 {/* List Column */}
                 <div>
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block mb-1">
@@ -679,7 +687,7 @@ export const TaskDetailModal = ({
 
         {/* Footer Actions (Edit / Delete / Close) */}
         {activeTab === 'details' ? (
-          <div className="px-6 py-3 border-t border-border bg-secondary/20 flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-2.5 sm:py-3 border-t border-border bg-secondary/20 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               {/* Delete button: Creator or Workspace Owner only */}
               {canDelete && !isEditing && (
@@ -746,7 +754,7 @@ export const TaskDetailModal = ({
             </div>
           </div>
         ) : (
-          <div className="px-6 py-2.5 border-t border-border bg-secondary/10 flex items-center justify-end">
+          <div className="px-4 sm:px-6 py-2.5 border-t border-border bg-secondary/10 flex items-center justify-end">
             <button
               onClick={onClose}
               className="px-4 py-1.5 rounded-xl text-xs font-medium bg-secondary text-foreground hover:bg-muted cursor-pointer transition-colors border border-border"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../api/axios';
 import {
   Clock,
@@ -23,6 +24,7 @@ export const TaskLogHours = ({
 }) => {
   const { user: currentUser } = useAuth();
   const { socket } = useSocket();
+  const { toast } = useToast();
 
   const [logHours, setLogHours] = useState([]);
   const [totalHours, setTotalHours] = useState(0);
@@ -260,7 +262,9 @@ export const TaskLogHours = ({
       onTotalHoursChange?.(newTotal);
     } catch (err) {
       console.error('Failed to delete logged hours:', err);
-      setError(err.response?.data?.message || 'Failed to delete logged hours.');
+      const msg = err.response?.data?.message || 'Failed to delete logged hours.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setDeletingId(null);
     }
@@ -419,9 +423,25 @@ export const TaskLogHours = ({
         </h4>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin text-primary mb-2" />
-            <span className="text-xs">Loading time entries...</span>
+          <div className="space-y-2.5 pt-1">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-3 rounded-xl border border-border/60 bg-card flex items-center justify-between gap-3 animate-pulse"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-7 h-7 rounded-full bg-muted/70 shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3.5 bg-muted/70 rounded w-24" />
+                      <div className="h-2.5 bg-muted/40 rounded w-16" />
+                    </div>
+                    <div className="h-3 bg-muted/50 rounded w-1/2" />
+                  </div>
+                </div>
+                <div className="h-6 w-14 bg-muted/50 rounded-lg shrink-0" />
+              </div>
+            ))}
           </div>
         ) : logHours.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground text-xs border border-dashed border-border rounded-2xl select-none">

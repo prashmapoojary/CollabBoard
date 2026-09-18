@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import {
   Users,
   UserPlus,
@@ -29,6 +30,7 @@ export const TeamMembersPanel = ({
   onWorkspaceUpdated,
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [workspaces, setWorkspaces] = useState([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState(null);
@@ -125,9 +127,12 @@ export const TeamMembersPanel = ({
       setNewWorkspaceName('');
       setShowCreateModal(false);
       setSuccessMsg(`Workspace "${data.workspace.name}" created successfully.`);
+      toast.success(`Workspace "${data.workspace.name}" created successfully.`);
       onWorkspaceUpdated?.(data.workspace);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create workspace.');
+      const msg = err.response?.data?.message || 'Failed to create workspace.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setCreatingWorkspace(false);
     }
@@ -181,12 +186,14 @@ export const TeamMembersPanel = ({
       );
       setInviteEmail('');
       setShowInviteModal(false);
-      setSuccessMsg(data.message || 'Invitation sent successfully.');
+      const msg = data.message || 'Invitation sent successfully.';
+      setSuccessMsg(msg);
+      toast.success(msg);
       onWorkspaceUpdated?.(data.workspace);
     } catch (err) {
-      setInviteError(
-        err.response?.data?.message || 'Failed to invite member. Please verify the email.'
-      );
+      const msg = err.response?.data?.message || 'Failed to invite member. Please verify the email.';
+      setInviteError(msg);
+      toast.error(msg);
     } finally {
       setInviting(false);
     }
@@ -207,9 +214,12 @@ export const TeamMembersPanel = ({
         prev.map((w) => (w._id === data.workspace._id ? data.workspace : w))
       );
       setSuccessMsg('Member role updated successfully.');
+      toast.success('Member role updated successfully.');
       onWorkspaceUpdated?.(data.workspace);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update member role.');
+      const msg = err.response?.data?.message || 'Failed to update member role.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUpdatingMemberId(null);
     }
@@ -233,9 +243,12 @@ export const TeamMembersPanel = ({
         prev.map((w) => (w._id === data.workspace._id ? data.workspace : w))
       );
       setSuccessMsg('Member removed from workspace.');
+      toast.success('Member removed from workspace.');
       onWorkspaceUpdated?.(data.workspace);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to remove member.');
+      const msg = err.response?.data?.message || 'Failed to remove member.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUpdatingMemberId(null);
     }
@@ -256,7 +269,7 @@ export const TeamMembersPanel = ({
           onClick={onClose}
         />
         <div className="relative w-full max-w-2xl bg-card border-l border-border shadow-2xl z-10 flex flex-col h-full overflow-hidden">
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-sidebar/50">
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between bg-sidebar/50">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-primary/10 text-primary">
                 <Users className="w-5 h-5" />
@@ -273,7 +286,7 @@ export const TeamMembersPanel = ({
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             {content}
           </div>
         </div>
@@ -283,9 +296,31 @@ export const TeamMembersPanel = ({
 
   if (loading) {
     return renderContainer(
-      <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-        <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
-        <p className="text-sm">Loading workspace team...</p>
+      <div className="w-full bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4 animate-pulse">
+        <div className="flex justify-between items-center pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-muted/70" />
+            <div className="space-y-1.5">
+              <div className="h-5 bg-muted/70 rounded w-36" />
+              <div className="h-3 bg-muted/40 rounded w-20" />
+            </div>
+          </div>
+          <div className="h-8 bg-muted/50 rounded-xl w-24" />
+        </div>
+        <div className="space-y-3 pt-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-3.5 border border-border/60 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-muted/70" />
+                <div className="space-y-1.5">
+                  <div className="h-4 bg-muted/70 rounded w-28" />
+                  <div className="h-3 bg-muted/40 rounded w-36" />
+                </div>
+              </div>
+              <div className="h-6 w-16 bg-muted/50 rounded-md" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -444,7 +479,7 @@ export const TeamMembersPanel = ({
         </div>
 
         {/* Actions & Workspace Switcher */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Workspace Switcher */}
           {workspaces.length > 1 && (
             <select

@@ -21,12 +21,16 @@ import {
 } from 'lucide-react';
 import { TeamMembersPanel } from '../workspace/TeamMembersPanel';
 import { CreateTaskModal } from '../task/CreateTaskModal';
+import { useSocket } from '../../context/SocketContext';
+import { useToast } from '../../context/ToastContext';
 
 export const AppShell = () => {
   const { workspaceId, projectId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { isReconnecting } = useSocket();
+  const { toast } = useToast();
 
   const [workspace, setWorkspace] = useState(null);
   const [userRole, setUserRole] = useState('viewer');
@@ -106,10 +110,11 @@ export const AppShell = () => {
       setNewProjectTitle('');
       setShowNewProjectModal(false);
       setRefreshTrigger((c) => c + 1);
+      toast.success(`Project "${data.project.title}" created successfully!`);
       // Navigate to the newly created project
       navigate(`/workspaces/${workspaceId}/projects/${data.project._id}`);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create project.');
+      toast.error(err.response?.data?.message || 'Failed to create project.');
     } finally {
       setCreatingProject(false);
     }
@@ -147,9 +152,38 @@ export const AppShell = () => {
 
   if (loading && !workspace) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6">
-        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-        <p className="text-sm font-medium text-muted-foreground">Loading workspace environment...</p>
+      <div className="min-h-screen bg-background text-foreground flex">
+        {/* Sidebar Skeleton */}
+        <aside className="hidden lg:flex w-64 bg-sidebar border-r border-sidebar-border flex-col p-4 space-y-6 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-muted/60 animate-pulse" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3.5 bg-muted/60 rounded-md w-3/4 animate-pulse" />
+              <div className="h-2.5 bg-muted/40 rounded-md w-1/2 animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-2 pt-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-9 bg-muted/40 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </aside>
+
+        {/* Content Area Skeleton */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-16 border-b border-border bg-card/50 px-6 flex items-center justify-between">
+            <div className="h-5 bg-muted/50 rounded-md w-40 animate-pulse" />
+            <div className="h-8 bg-muted/50 rounded-xl w-24 animate-pulse" />
+          </header>
+          <main className="flex-1 p-6 md:p-8 space-y-6">
+            <div className="h-20 bg-muted/30 rounded-2xl border border-border/50 animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 bg-muted/20 rounded-2xl border border-border/40 animate-pulse" />
+              ))}
+            </div>
+          </main>
+        </div>
       </div>
     );
   }
@@ -316,9 +350,18 @@ export const AppShell = () => {
               })}
 
               {projects.length === 0 && (
-                <p className="px-3 py-2 text-[11px] text-muted-foreground italic">
-                  No projects yet.
-                </p>
+                <div className="px-3 py-3 rounded-xl bg-sidebar-accent/30 border border-sidebar-border/50 text-muted-foreground space-y-1.5 text-center">
+                  <p className="text-xs font-semibold text-foreground/80">No projects yet</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">Add a project to begin tracking work</p>
+                  {userRole !== 'viewer' && (
+                    <button
+                      onClick={() => setShowNewProjectModal(true)}
+                      className="mt-1 px-2.5 py-1 text-[11px] font-semibold bg-primary text-primary-foreground hover:opacity-90 rounded-lg transition-all cursor-pointer"
+                    >
+                      + New Project
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -395,7 +438,18 @@ export const AppShell = () => {
           </div>
 
           {/* Top Bar Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Real-time Reconnecting Socket Indicator */}
+            {isReconnecting && (
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse"
+                title="Connection to real-time sync server temporarily dropped. Reconnecting..."
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                <span className="hidden sm:inline">Reconnecting...</span>
+              </div>
+            )}
+
             {/* Create Task Button: HIDDEN FOR VIEWERS */}
             {userRole !== 'viewer' && (
               <button

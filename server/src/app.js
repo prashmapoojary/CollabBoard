@@ -22,8 +22,8 @@ app.use(
   })
 );
 
-// Logging in non-test mode
-if (process.env.NODE_ENV !== 'test') {
+// HTTP request logging (disabled by default to keep terminal clean; enable with ENABLE_HTTP_LOGS=true)
+if (process.env.ENABLE_HTTP_LOGS === 'true') {
   app.use(morgan('dev'));
 }
 

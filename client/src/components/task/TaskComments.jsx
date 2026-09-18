@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useToast } from '../../context/ToastContext';
 import { api } from '../../api/axios';
 import { formatRelativeTime } from '../../utils/formatActivity';
 import {
@@ -20,6 +21,7 @@ export const TaskComments = ({
 }) => {
   const { user: currentUser } = useAuth();
   const { socket } = useSocket();
+  const { toast } = useToast();
 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -149,7 +151,7 @@ export const TaskComments = ({
       });
     } catch (err) {
       console.error('Failed to delete comment:', err);
-      alert(err.response?.data?.message || 'Failed to delete comment.');
+      toast.error(err.response?.data?.message || 'Failed to delete comment.');
     } finally {
       setDeletingId(null);
     }
@@ -178,9 +180,23 @@ export const TaskComments = ({
       {/* Comments List */}
       <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 max-h-[420px]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin text-primary mb-2" />
-            <p className="text-xs">Loading comments...</p>
+          <div className="space-y-3 pt-1">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 p-3 rounded-xl bg-secondary/20 border border-border/40 animate-pulse"
+              >
+                <div className="w-7 h-7 rounded-full bg-muted/70 shrink-0" />
+                <div className="flex-1 space-y-2 py-0.5">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 bg-muted/70 rounded w-24" />
+                    <div className="h-2.5 bg-muted/50 rounded w-12" />
+                  </div>
+                  <div className="h-3 bg-muted/60 rounded w-5/6" />
+                  <div className="h-3 bg-muted/40 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : comments.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground">
