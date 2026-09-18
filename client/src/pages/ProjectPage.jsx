@@ -588,9 +588,8 @@ export const ProjectPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-muted/60" />
-            <div className="space-y-1.5">
+            <div>
               <div className="h-5 bg-muted/60 rounded-md w-48" />
-              <div className="h-3 bg-muted/40 rounded-md w-24" />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -648,7 +647,6 @@ export const ProjectPage = () => {
   }
 
   const lists = project.lists || [];
-  const totalTasks = lists.reduce((acc, l) => acc + (l.tasks?.length || 0), 0);
 
   return (
     <div className="space-y-5 max-w-full mx-auto animate-in fade-in duration-200">
@@ -662,15 +660,6 @@ export const ProjectPage = () => {
             <h2 className="text-lg font-bold font-serif text-foreground leading-tight">
               {project.title}
             </h2>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-              <span>
-                {lists.length} {lists.length === 1 ? 'list' : 'lists'}
-              </span>
-              <span>•</span>
-              <span>
-                {totalTasks} {totalTasks === 1 ? 'task' : 'tasks'}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -702,7 +691,7 @@ export const ProjectPage = () => {
 
           {/* Real-time Connection Status Indicator */}
           <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-colors ${
+            className={`inline-flex items-center justify-center p-2 rounded-xl border transition-colors ${
               isConnected
                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                 : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
@@ -714,7 +703,6 @@ export const ProjectPage = () => {
                 isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
               }`}
             />
-            {isConnected ? 'Live' : 'Connecting'}
           </span>
 
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-secondary text-secondary-foreground text-xs font-semibold border border-border">
