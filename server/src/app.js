@@ -4,7 +4,12 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import workspaceRoutes from './routes/workspaceRoutes.js';
 import workspaceProjectRoutes from './routes/workspaceProjectRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
@@ -60,7 +65,20 @@ app.use('/api/lists', listRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/attachments', attachmentRoutes);
 
-// 404 Handler
+// Production static file serving of built React client
+if (process.env.NODE_ENV === 'production') {
+  const clientDistPath = path.resolve(__dirname, '../../client/dist');
+  app.use(express.static(clientDistPath));
+
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
+// 404 Handler for undefined API routes or assets
 app.use((req, res, next) => {
   next(new AppError(`Route not found: ${req.method} ${req.originalUrl}`, 404));
 });
